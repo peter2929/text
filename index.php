@@ -151,19 +151,33 @@ foreach($comments as $com)
 {
     //------------------------------------------------
     $exp = explode(' ', $com);
+    $latin_words = 0; //______________________________________
     for($m=0; $m<sizeof($exp); $m++)
     {
         $exp[$m] = mb_strtoupper($exp[$m], 'UTF-8');
         $base_form = $morphy->getBaseForm($exp[$m]);
+        //-------------------
+        if(preg_match('/^[A-Za-zĀāĒēŪūĪīĢģĶķĻļČčŅņŠš]+/', $exp[$m]))
+        {
+            $latin_words++;
+        }
+        //-------------------
+
         //var_dump($base_form);
         if($base_form[0])
-        print $base_form[0]."<br>";
+        {
+            print $base_form[0]."<br>";
+        }
     }
-    fwrite($handle, $counter.". ".$com."\n<hr>\r\n");
-    //------------------------------------------------
-
-    print $counter.". ".$com."\n<hr>\n";
-    $counter++;
+    //print $latin_words/sizeof($exp)."_________________________________________________";
+    $latin_ratio = $latin_words/sizeof($exp);
+    
+    if($latin_ratio < 0.3)
+    {
+        fwrite($handle, $counter.". ".$com."\n<hr>\r\n");
+        print $counter.". ".$com."\n<hr>\n";
+        $counter++;
+    }
 }
 
 
@@ -185,18 +199,33 @@ while($flag)
         {
     //------------------------------------------------
     $exp = explode(' ', $com);
+    $latin_words = 0; //______________________________________
     for($m=0; $m<sizeof($exp); $m++)
     {
         $exp[$m] = mb_strtoupper($exp[$m], 'UTF-8');
         $base_form = $morphy->getBaseForm($exp[$m]);
-        //var_dump($base_form);
+        
+        //-------------------
+        if(preg_match('/^[A-Za-zĀāĒēŪūĪīĢģĶķĻļČčŅņŠš]+/', $exp[$m]))
+        {
+            $latin_words++;
+        }
+        //-------------------
+
         if($base_form[0])
-        print $base_form[0]."<br>";
+        {
+            print $base_form[0]."<br>";
+        }
     }
-        fwrite($handle, $counter.". ".$com."\n<hr>\r\n");
-    //------------------------------------------------
+    
+        $latin_ratio = $latin_words/sizeof($exp);
+        if($latin_ratio < 0.3)
+        {
+            fwrite($handle, $counter.". ".$com."\n<hr>\r\n");    
             print $counter.". ".$com."\n<hr>\n";
             $counter++;
+        }
+        
         }
         $i++;
     }
