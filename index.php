@@ -32,6 +32,8 @@ try {
 	die('Error occured while creating phpMorphy instance: ' . $e->getMessage());
 }
 
+///$base_form = $morphy->getBaseForm("ТЕСТ)КОНЕЦ");
+///print $base_form[0];
 
 $handle = fopen("resource.txt", "a+");
 
@@ -149,9 +151,11 @@ $comments = retrieve_comments($url);
 $counter = 1;
 foreach($comments as $com)
 {
-    //------------------------------------------------
-    $exp = explode(' ', $com);
-    $latin_words = 0; //______________________________________
+    $unwantedChars = array(',', '!', '?', '.', '(', ')', '='); ///////////////////////////
+    $com3 = str_replace($unwantedChars, ' ', $com); //////////////
+    $exp = explode(' ', $com3); //////// used to be $com
+
+    $latin_words = 0;
     for($m=0; $m<sizeof($exp); $m++)
     {
         $exp[$m] = mb_strtoupper($exp[$m], 'UTF-8');
@@ -169,7 +173,7 @@ foreach($comments as $com)
             print $base_form[0]."<br>";
         }
     }
-    //print $latin_words/sizeof($exp)."_________________________________________________";
+
     $latin_ratio = $latin_words/sizeof($exp);
     
     if($latin_ratio < 0.3)
