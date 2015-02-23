@@ -142,7 +142,8 @@ $p[$i] = strstr($p[$i], "</p>", true);
 
 
 //----------------------------------------COMMENTS---------------------------------------------------
-
+add("training_data.txt");
+$res = array();
 print "<b style='font-size:125%'>Komentāri: </b><br><br>";
 
 $url = $_POST['url']."/comments";
@@ -151,7 +152,7 @@ $comments = retrieve_comments($url);
 $counter = 1;
 foreach($comments as $com)
 {
-    $unwantedChars = array(',', '!', '?', '.', '(', ')', '='); ///////////////////////////
+    $unwantedChars = array(',', '!', '?', '.', '(', ')', '=', '\n', '\r', '"'); ///////////////////////////
     $com3 = str_replace($unwantedChars, ' ', $com); //////////////
     $exp = explode(' ', $com3); //////// used to be $com
 
@@ -170,7 +171,7 @@ foreach($comments as $com)
         //var_dump($base_form);
         if($base_form[0])
         {
-            print $base_form[0]."<br>";
+            ///////////////print $base_form[0]."<br>";
         }
     }
 
@@ -179,8 +180,10 @@ foreach($comments as $com)
     if($latin_ratio < 0.3)
     {
         fwrite($handle, $counter.". ".$com."\n<hr>\r\n");
-        print $counter.". ".$com."\n<hr>\n";
+       ////////////////// print $counter.". ".$com."\n<hr>\n";
         $counter++;
+        $h = classify($com);
+        $res[$h] = $com;
     }
 }
 
@@ -218,7 +221,7 @@ while($flag)
 
         if($base_form[0])
         {
-            print $base_form[0]."<br>";
+           ////////////////// print $base_form[0]."<br>";
         }
     }
     
@@ -226,8 +229,10 @@ while($flag)
         if($latin_ratio < 0.3)
         {
             fwrite($handle, $counter.". ".$com."\n<hr>\r\n");    
-            print $counter.". ".$com."\n<hr>\n";
+            ////////////////////////print $counter.". ".$com."\n<hr>\n";
             $counter++;
+            $h = classify($com);
+            $res[$h] = $com;
         }
         
         }
@@ -259,6 +264,90 @@ function retrieve_comments($url)
     }
 
     return $d;
+}
+
+ksort($res);
+foreach($res as $key => $b)
+{
+    print $key." ".$b."<hr>";
+}
+
+//-------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------
+
+$index = array();
+$word_count = 0;
+
+function add($file)
+{
+        global $morphy, $index, $word_count;
+        $a = file_get_contents($file);
+        $texts = explode('DELIMITER', $a);
+
+        for($i=0; $i<sizeof($texts); $i++)
+        {    
+                //$words = tokenize($texts[$i]);
+                $unwantedChars = array(',', '!', '?', '.', '(', ')', '=', '\n', '\r', '"');
+                $com3 = str_replace($unwantedChars, ' ', $texts[$i]);
+                $words = explode(' ', $com3);
+                for($m=0; $m<sizeof($words); $m++)
+                {
+                        $words[$m] = trim($words[$m]);
+                        $words[$m] = mb_strtoupper($words[$m], 'UTF-8');
+
+                        $base_form = $morphy->getBaseForm($words[$m]);
+
+                        //if($base_form[0] && (mb_strlen($base_form[0], 'UTF-8') > 3))
+                        if($base_form[0])
+                        {
+                                $word = $base_form[0];
+                                if(!isset($index[$word]))
+                                {
+                                    $index[$word] = 0;
+                                }
+                                $index[$word]++;
+                                $word_count++;
+                        }
+                }
+        }
+}
+
+function classify($document)
+{
+    global $morphy, $index, $word_count;
+    $unwantedChars = array(',', '!', '?', '.', '(', ')', '=', '\n', '\r', '"');
+    $com3 = str_replace($unwantedChars, ' ', $document);
+
+    $words = explode(' ', $com3);
+    $prob = 1;
+
+    for($m=0; $m<sizeof($words); $m++)
+    {
+            $words[$m] = trim($words[$m]);
+            $words[$m] = mb_strtoupper($words[$m], 'UTF-8');
+
+            $base_form = $morphy->getBaseForm($words[$m]);
+
+            //if($base_form[0] && (mb_strlen($base_form[0], 'UTF-8') > 3))
+            if($base_form[0])
+            {
+                    $word = $base_form[0];
+                    if(!isset($index[$word]))
+                    {
+                        $count = 0;
+                    }
+                    else $count = $index[$word];
+
+                    ///$prob *= ($count + 1) / ($word_count + $word_count);
+                    $prob += log(($count + 1) / ($word_count + $word_count));
+                    /////
+                    //print $word." ".$count."-------------------<br>";
+            }
+    }
+
+    //print "<hr>";
+    return $prob;
 }
 
 
