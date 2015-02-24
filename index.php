@@ -232,7 +232,7 @@ while($flag)
             ////////////////////////print $counter.". ".$com."\n<hr>\n";
             $counter++;
             $h = classify($com);
-            $res[$h] = $com;
+            $res[(string)$h] = $com;
         }
         
         }
@@ -240,7 +240,11 @@ while($flag)
     }
 }
 
-
+ksort($res);
+foreach($res as $key => $b)
+{
+    print $key." ".$b."<hr>";
+}
 
 }
 
@@ -266,22 +270,17 @@ function retrieve_comments($url)
     return $d;
 }
 
-ksort($res);
-foreach($res as $key => $b)
-{
-    print $key." ".$b."<hr>";
-}
-
 //-------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------
 
 $index = array();
 $word_count = 0;
+$unique_word_count = 0;
 
 function add($file)
 {
-        global $morphy, $index, $word_count;
+        global $morphy, $index, $word_count, $unique_word_count;
         $a = file_get_contents($file);
         $texts = explode('DELIMITER', $a);
 
@@ -305,6 +304,7 @@ function add($file)
                                 if(!isset($index[$word]))
                                 {
                                     $index[$word] = 0;
+                                    $unique_word_count++;
                                 }
                                 $index[$word]++;
                                 $word_count++;
@@ -315,7 +315,7 @@ function add($file)
 
 function classify($document)
 {
-    global $morphy, $index, $word_count;
+    global $morphy, $index, $word_count, $unique_word_count;
     $unwantedChars = array(',', '!', '?', '.', '(', ')', '=', '\n', '\r', '"');
     $com3 = str_replace($unwantedChars, ' ', $document);
 
@@ -340,13 +340,14 @@ function classify($document)
                     else $count = $index[$word];
 
                     ///$prob *= ($count + 1) / ($word_count + $word_count);
-                    $prob += log(($count + 1) / ($word_count + $word_count));
+                    $prob += log(($count + 1) / ($word_count + $unique_word_count));
                     /////
                     //print $word." ".$count."-------------------<br>";
             }
     }
 
     //print "<hr>";
+    //$prob = exp($prob);
     return $prob;
 }
 
