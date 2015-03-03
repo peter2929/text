@@ -2,13 +2,13 @@
 
 error_reporting(E_ALL | E_STRICT);
 include './phpmorphy/src/common.php';
-
+//ini_set('default_charset', 'utf-8')
+///mb_internal_encoding('UTF-8');
 ?>
 
 <html>
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 </head>
 <body>
     
@@ -42,19 +42,36 @@ try {
 	die('Error occured while creating phpMorphy instance: ' . $e->getMessage());
 }
 
-//$base_form = $morphy->getBaseForm("");
+$base_form = $morphy->getBaseForm("");
 //print $base_form[0];
+///print mb_detect_encoding("");
 //print "<br><br>";
+
+$stopwords = array();
+$fh = fopen('stop-words.txt', 'r');
+while($line = fgets($fh))
+{
+    $trimmed_line = trim($line);
+    $trimmed_line = mb_strtoupper($trimmed_line, 'UTF-8');
+    $base_form = $morphy->getBaseForm($trimmed_line);  /////
+    ///$stopwords[$trimmed_line] = 1;
+    $stopwords[$base_form[0]] = 1;
+}
+
+
 
 //---------------------------------------------------------------------------------------------
 
-$index = array();
+$total_index = array();
+$bad_index = array();
 $word_count = 0;
+$bad_word_count = 0;
 $unique_word_count = 0;
+$bad_word_count = 0;
 
 function add($file)
 {
-        global $morphy, $index, $word_count, $unique_word_count;
+        global $morphy, $total_index, $bad_index, $word_count, $unique_word_count, $bad_word_count;
         $a = file_get_contents($file);
         $texts = explode('DELIMITER', $a);
 
@@ -70,31 +87,67 @@ function add($file)
 
                         $base_form = $morphy->getBaseForm($words[$m]);
 
-                        //if($base_form[0] && (mb_strlen($base_form[0], 'UTF-8') > 3))
-                        if($base_form[0])
+                        if($base_form[0]  && !isset($stopwords[$base_form[0]]))
                         {
                                 $word = $base_form[0];
-                                if(!isset($index[$word]))
+                                if(!isset($total_index[$word]))
                                 {
-                                    $index[$word] = 0;
+                                    $total_index[$word] = 0;
+                                    $bad_index[$word] = 0;
                                     $unique_word_count++;
                                 }
-                                $index[$word]++;
+
+                                $total_index[$word]++;
+                                $bad_index[$word]++;
                                 $word_count++;
                         }
                 }
         }
+        
+        //---------------------------------------------------------------
+        
+        $b = file_get_contents("neutral_data.txt");
+        $com3 = str_replace($unwantedChars, ' ', $b);
+        $words = explode(' ', $com3);
+        $bad_word_count = $word_count;
+        
+        for($m=0; $m<sizeof($words); $m++)
+        {
+            $words[$m] = trim($words[$m]);
+            $words[$m] = mb_strtoupper($words[$m], 'UTF-8');
+
+            $base_form = $morphy->getBaseForm($words[$m]);
+
+            if($base_form[0]  && !isset($stopwords[$base_form[0]]))
+            {
+                    $word = $base_form[0];
+                    if(!isset($total_index[$word]))
+                    {
+                        $total_index[$word] = 0;
+                        $bad_index[$word] = 0;
+                        $unique_word_count++;
+                    }
+
+                    $total_index[$word]++;
+                    $word_count++;
+            }
+        }
+
 }
 
 function classify($document)
 {
-    global $morphy, $index, $word_count, $unique_word_count;
-    $unwantedChars = array(',', '!', '?', '.', '(', ')', '=', '\n', '\r', '"');
+    global $morphy, $total_index, $bad_index, $word_count, $bad_word_count, $unique_word_count, $stopwords;
+    $denominator = 0;
+    $unwantedChars = array(',', '!', '?', '.', '(', ')', '=', '\n', '\r', '"', ':');
     $com3 = str_replace($unwantedChars, ' ', $document);
 
     $words = explode(' ', $com3);
-    $prob = 1;
-print "<table style='width:20%'>";
+    $prob = 0;
+    $prob2 = 0;
+    $neutral_word_count = $word_count - $bad_word_count;
+    
+    print "<table style='width:20%'>";
     for($m=0; $m<sizeof($words); $m++)
     {
             $words[$m] = trim($words[$m]);
@@ -102,47 +155,67 @@ print "<table style='width:20%'>";
 
             $base_form = $morphy->getBaseForm($words[$m]);
 
-            if($base_form[0])
+            if($base_form[0] && !isset($stopwords[$base_form[0]]))
             {
                     $word = $base_form[0];
-                    if(!isset($index[$word]))
+                    if(!isset($total_index[$word]))
                     {
-                        $count = 0;
-                        /////print $word."------------------------<br>";
+                        $count_total = 0;
+                        $count_bad = 0;
                     }
-                    else $count = $index[$word];
+                    else
+                    {
+                        $count_total = $total_index[$word];
+                        if(!isset($bad_index[$word]))
+                            $count_bad = 0;
+                        else
+                            $count_bad = $bad_index[$word];
+                    }
 
-                    //$prob += log(($count + 1) / ($word_count + $word_count));
-                    //print "<tr><td>".$word."</td><td>".log(($count + 1) / ($word_count + $word_count))."</td></tr>";
-                    
-                    if($count > 0)
-                    {
-                        $prob += log($count / $word_count); ////
-                        print "<tr><td>".$word."</td><td>".log($count / $word_count)."</td></tr>"; ////
-                    }
+                    //if($count > 0)
+                    //{
+                        $denominator = ($count_total+1) / ($word_count+$unique_word_count);
+                        ///$denominator++;
+                        $numerator = ($count_bad+1) / ($bad_word_count+$unique_word_count);
+                        $prob += log($numerator/$denominator);
+                        ///$prob += log($numerator);
+                        $neutral_occurrence = $count_total - $count_bad;
+
+                        $numerator2 = ($neutral_occurrence+1) / ($neutral_word_count+$unique_word_count);
+                        $prob2 += log($numerator2/$denominator);
+                        ///$prob2 += log($numerator2);
+                        print "<tr><td>".$word."</td><td>".log($numerator/$denominator)."</td><td>".log($numerator2/$denominator)."</td><td>".$count_bad."</td></tr>"; ////
+                    //}
             }
+            ////
     }
-print "</table><br>";
-    return $prob;
     
+    $prob += log($bad_word_count / $word_count);
+    $prob2 += log($neutral_word_count / $word_count);
+
+print "</table><br>";
+
+if($prob > $prob2) print "<b>Negativs!</b><br>";
+else print "<b>Nav negativs!</b><br>";
+
+print "Neg index: ".$prob." NON neg index ".$prob2."  ";
+return "";
+
 }
 
-
-print "<table style='width:50%'>";
 
 add("training_data.txt");
-arsort($index);
-foreach($index as $key => $b)
-{
-    print "<tr><td style='width:10%'>".$key."</td><td>".$b."</td><td>".log($b/$word_count)."</td></tr>";
-}
 
-print "</table><br>";
+//print "<table style='width:50%'>";
+//arsort($total_index);
+//print "</table><br>";
+
 print "<b>Kopā</b>: ".$word_count."<br>";
+print "<b>Slikti</b>: ".$bad_word_count."<br>";
 print "<b>Unikāli</b>: ".$unique_word_count."<br><br><br><hr>";
 
 print "Хоть вера не позволяет матерится, но в этот раз скажу иди нахуй господин парашенко.<br>";
-print classify("Хоть вера не позволяет матерится, но в этот раз скажу иди HАXУЙ господин парашенко.")."<br>";
+print classify("Хоть вера не позволяет матерится, но в этот раз скажу иди нахуй господин парашенко.")."<br>";
 print "<hr>";
 
 print "Вашему вниманию очередное кино кинокомпании наливайченко-продакшн. Как говорил Станиславский: не верю!"."<br>";
@@ -150,11 +223,11 @@ print classify("Вашему вниманию очередное кино кин
 print "<hr>";
 
 print ("рашка безнадежна. нормальным людям остаётся только уехать﻿")."<br>";
-print classify("рашка безнадежна. нормальным людям остаётся только уехать﻿")."<br>";
+print classify("рашка безнадежна. нормальным людям остаётся только уехать")."<br>";
 print "<hr>";
 
 print "не будет никакой гааги, хотя потрошенко яйценюх торчок и компания заслуживают, сдохнешь и ты и я, и весь мир, вы же блять укропы этого хотели? хотели третьей мировой и конца света? началось... и знаешь мразь, мне нехуя вас людей не жалко, потому что вы нелюди, зверьё﻿"."<br>";
-print classify("не будет никакой гааги, хотя потрошенко яйценюх торчок и компания заслуживают, сдохнешь и ты и я, и весь мир, вы же блять укропы этого хотели? хотели третьей мировой и конца света? началось... и знаешь мразь, мне нехуя вас людей не жалко, потому что вы нелюди, зверьё﻿")."<br>";
+print classify("не будет никакой гааги, хотя потрошенко яйценюх торчок и компания заслуживают, сдохнешь и ты и я, и весь мир, вы же блять укропы этого хотели? хотели третьей мировой и конца света? началось... и знаешь мразь, мне нехуя вас людей не жалко, потому что вы нелюди, зверьё")."<br>";
 print "<hr>";
 
 print "придурок, да срать России и всему миру на твою укропию, если ты это не понял))) а так конечно, повторяй мантры скоро, весь мир за нас рассиюпабедим"."<br>";
@@ -174,8 +247,25 @@ print classify("Оххх у хохлов как попка пригорает , 
 print "<hr>";
 
 print ("люди, из-за этих блядей майданутых мы все умрем, укропы, что вы за мрази-то такие, сука я вас даже когда умру проклинать буду, вы уёбки со своей говяной майданутой революцией не только себе хуже сделали, вы половине мира поднасрали. скорей бы уж разъебали землю ядерными ракетами, просто противно жить на одной планете с уёбкаи﻿")."<br>";
-print classify("люди, из-за этих блядей майданутых мы все умрем, укропы, что вы за мрази-то такие, сука я вас даже когда умру проклинать буду, вы уёбки со своей говяной майданутой революцией не только себе хуже сделали, вы половине мира поднасрали. скорей бы уж разъебали землю ядерными ракетами, просто противно жить на одной планете с уёбкаи﻿")."<br>";
+print classify("люди, из-за этих блядей майданутых мы все умрем, укропы, что вы за мрази-то такие, сука я вас даже когда умру проклинать буду, вы уёбки со своей говяной майданутой революцией не только себе хуже сделали, вы половине мира поднасрали. скорей бы уж разъебали землю ядерными ракетами, просто противно жить на одной планете с уёбками")."<br>";
+print "<hr>";
 
+print("Я переживаю вместе и выражаю глубогое соболезнование всем жителям Донбасса, чьи дети и родители поколечены и убиты украинскими насильниками и фашистами при поддержке таких, как немцов.");
+classify("Я переживаю вместе и выражаю глубогое соболезнование всем жителям Донбасса, чьи дети и родители поколечены и убиты украинскими насильниками и фашистами при поддержке таких, как немцов.");
+print "<hr>";
+
+print("жму руку, крепитесь и лечитесь");
+classify("жму руку, крепитесь и лечитесь");
+print "<hr>";
+
+print("Твой комментарий великое благо не только для России, но и для Вселенной!");
+classify("Твой комментарий великое благо не только для России, но и для Вселенной!");
+print "<hr>";
+
+print("Еще до начала церемонии у центра выстроилась большая очередь желающих проститься с убитым политиком, с цветами и зажженными свечами в руках, сообщает находящийся там журналист");
+classify("Еще до начала церемонии у центра выстроилась большая очередь желающих проститься с убитым политиком, с цветами и зажженными свечами в руках, сообщает находящийся там журналист");
+
+print "<hr>";
 
 ?>
 
