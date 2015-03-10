@@ -7,11 +7,18 @@ include './phpmorphy/src/common.php';
 ?>
 
 <html>
-<head>
+<head  lang="en">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+
 </head>
 <body>
-    
+<center>
+<div class="container-fluid">    
 <?php
 
 // set some options
@@ -147,7 +154,8 @@ function classify($document)
     $prob2 = 0;
     $neutral_word_count = $word_count - $bad_word_count;
     
-    print "<table style='width:20%'>";
+    print "<table style='width:20%'  class='table table-bordered table-hover'>";
+    print "<th>Vards</th><th>Neg.</th><th>Neitrals</th><th>Neg.</th><th>Neitrals</th>";
     for($m=0; $m<sizeof($words); $m++)
     {
             $words[$m] = trim($words[$m]);
@@ -174,31 +182,37 @@ function classify($document)
 
                     //if($count > 0)
                     //{
-                        $denominator = ($count_total+1) / ($word_count+$unique_word_count);
-                        ///$denominator++;
+
                         $numerator = ($count_bad+1) / ($bad_word_count+$unique_word_count);
-                        $prob += log($numerator/$denominator);
-                        ///$prob += log($numerator);
+                        $prob += log($numerator);
                         $neutral_occurrence = $count_total - $count_bad;
 
                         $numerator2 = ($neutral_occurrence+1) / ($neutral_word_count+$unique_word_count);
-                        $prob2 += log($numerator2/$denominator);
-                        ///$prob2 += log($numerator2);
-                        print "<tr><td>".$word."</td><td>".log($numerator/$denominator)."</td><td>".log($numerator2/$denominator)."</td><td>".$count_bad."</td></tr>"; ////
+                        $prob2 += log($numerator2);
+
+                        print "<tr><td>".$word."</td><td>".log($numerator)."</td><td>".log($numerator2)."</td><td>".$count_bad."</td><td>".$neutral_occurrence."</td></tr>"; ////
                     //}
             }
             ////
     }
     
-    $prob += log($bad_word_count / $word_count);
-    $prob2 += log($neutral_word_count / $word_count);
+    $prob += log(0.2);
+    $prob2 += log(1);
 
 print "</table><br>";
 
-if($prob > $prob2) print "<b>Negativs!</b><br>";
-else print "<b>Nav negativs!</b><br>";
+if($prob > $prob2)
+{
+    print "<span style='color:#f00;'><b>Negatīvs!</b></span><br>";
+    print "<a href='#' class='btn  btn-primary' role='button'>Tomer ir neitrals</a><br>";
+}
+else
+{
+    print "<span style='color:#0f0;'><b>Nav negatīvs!</span></b><br>";
+    print "<a href='#' class='btn  btn-primary' role='button'>Tomer ir negativs</a><br>";
+}
 
-print "Neg index: ".$prob." NON neg index ".$prob2."  ";
+print "Neg prob: ".$prob." NON neg prob ".$prob2."  ";
 return "";
 
 }
@@ -212,7 +226,7 @@ add("training_data.txt");
 
 print "<b>Kopā</b>: ".$word_count."<br>";
 print "<b>Slikti</b>: ".$bad_word_count."<br>";
-print "<b>Unikāli</b>: ".$unique_word_count."<br><br><br><hr>";
+print "<b>Unikāli</b>: ".$unique_word_count."<br><hr>";
 
 print "Хоть вера не позволяет матерится, но в этот раз скажу иди нахуй господин парашенко.<br>";
 print classify("Хоть вера не позволяет матерится, но в этот раз скажу иди нахуй господин парашенко.")."<br>";
@@ -267,11 +281,14 @@ classify("Еще до начала церемонии у центра выстр
 
 print "<hr>";
 
+print("Лстить не надо. Киров 2, не смешите.");
+classify("Лстить не надо. Киров 2, не смешите.");
+
 ?>
 
 
 
 
-
+</div>
 </body>
 </html>
