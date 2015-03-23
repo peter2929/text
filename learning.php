@@ -1,9 +1,7 @@
-﻿<?php
+<?php
 
-error_reporting(E_ALL | E_STRICT);
-include './phpmorphy/src/common.php';
-//ini_set('default_charset', 'utf-8')
-///mb_internal_encoding('UTF-8');
+include 'NaiveBayesClass.php';
+
 ?>
 
 <html>
@@ -19,227 +17,35 @@ include './phpmorphy/src/common.php';
 <body>
 <center>
 <div class="container-fluid">    
+
 <?php
-
-// set some options
-$opts = array(
-	// storage type, follow types supported
-	// PHPMORPHY_STORAGE_FILE - use file operations(fread, fseek) for dictionary access, this is very slow...
-	// PHPMORPHY_STORAGE_SHM - load dictionary in shared memory(using shmop php extension), this is preferred mode
-	// PHPMORPHY_STORAGE_MEM - load dict to memory each time when phpMorphy intialized, this useful when shmop ext. not activated. Speed same as for PHPMORPHY_STORAGE_SHM type
-	'storage' => PHPMORPHY_STORAGE_FILE,
-	// Extend graminfo for getAllFormsWithGramInfo method call
-	'with_gramtab' => false,
-	// Enable prediction by suffix
-	'predict_by_suffix' => true, 
-	// Enable prediction by prefix
-	'predict_by_db' => true
-);
-
-// Path to directory where dictionaries located
-$dir = dirname(__FILE__) . '\phpmorphy\dicts';
-
-// Create descriptor for dictionary located in $dir directory with russian language
-$dict_bundle = new phpMorphy_FilesBundle($dir, 'rus');
-
-// Create phpMorphy instance
-try {
-	$morphy = new phpMorphy($dict_bundle, $opts);
-} catch(phpMorphy_Exception $e) {
-	die('Error occured while creating phpMorphy instance: ' . $e->getMessage());
-}
-
-$base_form = $morphy->getBaseForm("");
-//print $base_form[0];
-///print mb_detect_encoding("");
-//print "<br><br>";
-
-$stopwords = array();
-$fh = fopen('stop-words.txt', 'r');
-while($line = fgets($fh))
-{
-    $trimmed_line = trim($line);
-    $trimmed_line = mb_strtoupper($trimmed_line, 'UTF-8');
-    $base_form = $morphy->getBaseForm($trimmed_line);  /////
-    ///$stopwords[$trimmed_line] = 1;
-    $stopwords[$base_form[0]] = 1;
-}
-
-
 
 //---------------------------------------------------------------------------------------------
 
-$total_index = array();
-$bad_index = array();
-$word_count = 0;
-$bad_word_count = 0;
-$unique_word_count = 0;
-$bad_word_count = 0;
+$var = new sentiments();
 
-function add($file)
-{
-        global $morphy, $total_index, $bad_index, $word_count, $unique_word_count, $bad_word_count;
-        $a = file_get_contents($file);
-        $texts = explode('DELIMITER', $a);
-
-        for($i=0; $i<sizeof($texts); $i++)
-        {    
-                $unwantedChars = array(',', '!', '?', '.', '(', ')', '=', '\n', '\r', '"');
-                $com3 = str_replace($unwantedChars, ' ', $texts[$i]);
-                $words = explode(' ', $com3);
-                for($m=0; $m<sizeof($words); $m++)
-                {
-                        $words[$m] = trim($words[$m]);
-                        $words[$m] = mb_strtoupper($words[$m], 'UTF-8');
-
-                        $base_form = $morphy->getBaseForm($words[$m]);
-
-                        if($base_form[0]  && !isset($stopwords[$base_form[0]]))
-                        {
-                                $word = $base_form[0];
-                                if(!isset($total_index[$word]))
-                                {
-                                    $total_index[$word] = 0;
-                                    $bad_index[$word] = 0;
-                                    $unique_word_count++;
-                                }
-
-                                $total_index[$word]++;
-                                $bad_index[$word]++;
-                                $word_count++;
-                        }
-                }
-        }
-        
-        //---------------------------------------------------------------
-        
-        $b = file_get_contents("neutral_data.txt");
-        $com3 = str_replace($unwantedChars, ' ', $b);
-        $words = explode(' ', $com3);
-        $bad_word_count = $word_count;
-        
-        for($m=0; $m<sizeof($words); $m++)
-        {
-            $words[$m] = trim($words[$m]);
-            $words[$m] = mb_strtoupper($words[$m], 'UTF-8');
-
-            $base_form = $morphy->getBaseForm($words[$m]);
-
-            if($base_form[0]  && !isset($stopwords[$base_form[0]]))
-            {
-                    $word = $base_form[0];
-                    if(!isset($total_index[$word]))
-                    {
-                        $total_index[$word] = 0;
-                        $bad_index[$word] = 0;
-                        $unique_word_count++;
-                    }
-
-                    $total_index[$word]++;
-                    $word_count++;
-            }
-        }
-
-}
-
-function classify($document)
-{
-    global $morphy, $total_index, $bad_index, $word_count, $bad_word_count, $unique_word_count, $stopwords;
-    $denominator = 0;
-    $unwantedChars = array(',', '!', '?', '.', '(', ')', '=', '\n', '\r', '"', ':');
-    $com3 = str_replace($unwantedChars, ' ', $document);
-
-    $words = explode(' ', $com3);
-    $prob = 0;
-    $prob2 = 0;
-    $neutral_word_count = $word_count - $bad_word_count;
-    
-    print "<table style='width:20%'  class='table table-bordered table-hover'>";
-    print "<th>Vards</th><th>Neg.</th><th>Neitrals</th><th>Neg.</th><th>Neitrals</th>";
-    for($m=0; $m<sizeof($words); $m++)
-    {
-            $words[$m] = trim($words[$m]);
-            $words[$m] = mb_strtoupper($words[$m], 'UTF-8');
-
-            $base_form = $morphy->getBaseForm($words[$m]);
-
-            if($base_form[0] && !isset($stopwords[$base_form[0]]))
-            {
-                    $word = $base_form[0];
-                    if(!isset($total_index[$word]))
-                    {
-                        $count_total = 0;
-                        $count_bad = 0;
-                    }
-                    else
-                    {
-                        $count_total = $total_index[$word];
-                        if(!isset($bad_index[$word]))
-                            $count_bad = 0;
-                        else
-                            $count_bad = $bad_index[$word];
-                    }
-
-                    //if($count > 0)
-                    //{
-
-                        $numerator = ($count_bad+1) / ($bad_word_count+$unique_word_count);
-                        $prob += log($numerator);
-                        $neutral_occurrence = $count_total - $count_bad;
-
-                        $numerator2 = ($neutral_occurrence+1) / ($neutral_word_count+$unique_word_count);
-                        $prob2 += log($numerator2);
-
-                        print "<tr><td>".$word."</td><td>".log($numerator)."</td><td>".log($numerator2)."</td><td>".$count_bad."</td><td>".$neutral_occurrence."</td></tr>"; ////
-                    //}
-            }
-            ////
-    }
-    
-    $prob += log(0.2);
-    $prob2 += log(1);
-
-print "</table><br>";
-
-if($prob > $prob2)
-{
-    print "<span style='color:#f00;'><b>Negatīvs!</b></span><br>";
-    print "<a href='#' class='btn  btn-primary' role='button'>Tomer ir neitrals</a><br>";
-}
-else
-{
-    print "<span style='color:#0f0;'><b>Nav negatīvs!</span></b><br>";
-    print "<a href='#' class='btn  btn-primary' role='button'>Tomer ir negativs</a><br>";
-}
-
-print "Neg prob: ".$prob." NON neg prob ".$prob2."  ";
-return "";
-
-}
-
-
-add("training_data.txt");
+$var->add("training_data.txt");
 
 //print "<table style='width:50%'>";
 //arsort($total_index);
 //print "</table><br>";
 
-print "<b>Kopā</b>: ".$word_count."<br>";
-print "<b>Slikti</b>: ".$bad_word_count."<br>";
-print "<b>Unikāli</b>: ".$unique_word_count."<br><hr>";
+print "<b>Kopā</b>: ".$var->word_count."<br>";
+print "<b>Slikti</b>: ".$var->bad_word_count."<br>";
+print "<b>Unikāli</b>: ".$var->unique_word_count."<br><hr>";
 
 print "Хоть вера не позволяет матерится, но в этот раз скажу иди нахуй господин парашенко.<br>";
-print classify("Хоть вера не позволяет матерится, но в этот раз скажу иди нахуй господин парашенко.")."<br>";
+print $var->classify("Хоть вера не позволяет матерится, но в этот раз скажу иди нахуй господин парашенко.")."<br>";
 print "<hr>";
 
 print "Вашему вниманию очередное кино кинокомпании наливайченко-продакшн. Как говорил Станиславский: не верю!"."<br>";
-print classify("Вашему вниманию очередное кино кинокомпании наливайченко-продакшн. Как говорил Станиславский: не верю!")."<br>";
+print $var->classify("Вашему вниманию очередное кино кинокомпании наливайченко-продакшн. Как говорил Станиславский: не верю!")."<br>";
 print "<hr>";
 
 print ("рашка безнадежна. нормальным людям остаётся только уехать﻿")."<br>";
-print classify("рашка безнадежна. нормальным людям остаётся только уехать")."<br>";
+print $var->classify("рашка безнадежна. нормальным людям остаётся только уехать")."<br>";
 print "<hr>";
-
+/*
 print "не будет никакой гааги, хотя потрошенко яйценюх торчок и компания заслуживают, сдохнешь и ты и я, и весь мир, вы же блять укропы этого хотели? хотели третьей мировой и конца света? началось... и знаешь мразь, мне нехуя вас людей не жалко, потому что вы нелюди, зверьё﻿"."<br>";
 print classify("не будет никакой гааги, хотя потрошенко яйценюх торчок и компания заслуживают, сдохнешь и ты и я, и весь мир, вы же блять укропы этого хотели? хотели третьей мировой и конца света? началось... и знаешь мразь, мне нехуя вас людей не жалко, потому что вы нелюди, зверьё")."<br>";
 print "<hr>";
@@ -283,6 +89,8 @@ print "<hr>";
 
 print("Лстить не надо. Киров 2, не смешите.");
 classify("Лстить не надо. Киров 2, не смешите.");
+*/
+
 
 ?>
 

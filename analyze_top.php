@@ -85,7 +85,7 @@ function add($file)
 
         for($i=0; $i<sizeof($texts); $i++)
         {    
-                $unwantedChars = array(',', '!', '?', '.', '(', ')', '=', '\n', '\r', '"');
+                $unwantedChars = array(',', '!', '?', '.', '(', ')', '=', '\n', '\r', '"', ':');
                 $com3 = str_replace($unwantedChars, ' ', $texts[$i]);
                 $words = explode(' ', $com3);
                 for($m=0; $m<sizeof($words); $m++)
@@ -95,7 +95,7 @@ function add($file)
 
                         $base_form = $morphy->getBaseForm($words[$m]);
 
-                        if($base_form[0]  && !isset($stopwords[$base_form[0]]))
+                        if($base_form[0])
                         {
                                 $word = $base_form[0];
                                 if(!isset($total_index[$word]))
@@ -127,7 +127,7 @@ function add($file)
 
             $base_form = $morphy->getBaseForm($words[$m]);
 
-            if($base_form[0]  && !isset($stopwords[$base_form[0]]))
+            if($base_form[0])
             {
                     $word = $base_form[0];
                     if(!isset($total_index[$word]))
@@ -143,6 +143,7 @@ function add($file)
         }
 
 }
+
 
 function classify($document)
 {
