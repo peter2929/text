@@ -24,14 +24,35 @@ include 'NaiveBayesClass.php';
 
 $var = new sentiments();
 
-$var->add("training_data.txt");
+$file_content = file_get_contents("training_data.txt");
+$texts = explode('DELIMITER', $file_content);
+
+for($i=0; $i<sizeof($texts); $i++)
+{
+    $var->add($texts[$i], "negative");
+}
+
+$file_content = file_get_contents("neutral_data.txt");
+$texts = explode('DELIMITER', $file_content);
+
+for($i=0; $i<sizeof($texts); $i++)
+{
+    $var->add($texts[$i], "neutral");
+}
+
+foreach($var->index['negative'] as $key => $value)
+{
+    //print $key."<br>";
+}
+
+//$var->add("training_data.txt");
 
 //print "<table style='width:50%'>";
 //arsort($total_index);
 //print "</table><br>";
 
-print "<b>Kopā</b>: ".$var->word_count."<br>";
-print "<b>Slikti</b>: ".$var->bad_word_count."<br>";
+print "<b>Kopā</b>: ".$var->total_word_count."<br>";
+print "<b>Slikti</b>: ".$var->word_count['negative']."<br>";
 print "<b>Unikāli</b>: ".$var->unique_word_count."<br><hr>";
 
 print "Хоть вера не позволяет матерится, но в этот раз скажу иди нахуй господин парашенко.<br>";

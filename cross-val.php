@@ -1,6 +1,7 @@
 ﻿<?php
 
 include 'NaiveBayesClass.php';
+set_time_limit(300);
 
 class test_docs
 {
@@ -30,8 +31,7 @@ $test_arr = array();
 
 $op = new sentiments();
 $objects = array();
-// $labeled_arr[][] - array where we will check the labels
-// $test_arr
+
 
 $content = file_get_contents('training_data.txt');
 $exploded_doc = explode('DELIMITER', $content);
@@ -98,6 +98,8 @@ print "Incorrect: ".$incorrect_count;
 */
 //-----------------------NOW LET'S PICK 20 RANDOM DOCUMENTS-------------------------------------------------------
 
+$k = 10;
+
 $correct_count = 0;
 $incorrect_count = 0;
 $tp_negative = 0;
@@ -110,7 +112,7 @@ $fp_neutral = 0;
 $fn_neutral = 0;
 $tn_neutral = 0;
 
-for($i=0; $i<10; $i++)
+for($i=0; $i<10; $i++) //10
 {
     //$correct_count = 0;
     //$incorrect_count = 0;
@@ -125,7 +127,7 @@ for($i=0; $i<10; $i++)
     for($j=180; $j<200; $j++)
     {
         print $objects[$j]->text."<br>";
-        print "<hr>".$objects[$j]->label."<hr>";
+        print "<br>".$objects[$j]->label."<hr>";
 
         $test_result = $op->classify($objects[$j]->text);
         
@@ -179,12 +181,12 @@ for($i=0; $i<10; $i++)
         
         if($test_result == $objects[$j]->label)
         {
-            print "<b>Correct!</b>";
+            print "<br><h3>Korekti izvēlēts!</h3><br><br>";
             $correct_count++;
         }
         else
         {
-            print "<b>INcorrect!</b>";
+            print "<br><h3>Nav korekti izvēlēts!</h3><br><br>";
             $incorrect_count++;
         }
         print "<hr>";
@@ -202,11 +204,30 @@ $precision_neutral = $tp_neutral / ($tp_neutral + $fp_neutral);
 $recall_neutral = $tp_neutral / ($tp_neutral + $fn_neutral);
 $f1_neutral = 2 * $precision_neutral * $recall_neutral / ($precision_neutral + $recall_neutral);
 
+print "<table style='width:40%' class='table table-bordered table-hover'>";
+
 print "<hr><hr>";
-print "Correct: ".$correct_count;
-print "<br>";
-print "Incorrect: ".$incorrect_count;
-print "<hr><hr>";
+print "<tr><td><b>Korekti: </b></td><td>".$correct_count * 100 /($correct_count+$incorrect_count)."%</td></tr>\n";
+print "<tr><td><b>Nekorekti: </b></td><td>".$incorrect_count * 100 /($correct_count+$incorrect_count)."%</td></tr>\n";
+
+print "</table><br>";
+
+print "<center><b>Negatīviem komentāriem</b></center>";
+
+print "<table style='width:40%' class='table table-bordered table-hover'>\n";
+print "<tr><td>&nbsp;</td><td><b>Ir</b></td><td><b>nav</b></td></tr>\n";
+print "<tr><td><b>Izvēlēts</b></td><td>TP: ".$tp_negative."</td><td>FP: ".$fp_negative."</td></tr>\n";
+print "<tr><td><b>Nav izvēlēts</b></td><td>FN: ".$fn_negative."</td><td>TN: ".$tn_negative."</td></tr>\n";
+print "</table><br>";
+
+print "<table style='width:40%' class='table table-bordered table-hover'>";
+print "<tr><td><b>Precision: </b></td><td>".$precision_negative."</td></tr>\n";
+print "<tr><td><b>Recall: </b></td><td>".$recall_negative."</td></tr>\n";
+print "<tr><td><b>F1: </b></td><td>".$f1_negative."</td></tr>\n";
+
+print "</table><br>";
+
+/*
 print "For negative class <br>";
 print "TP: ".$tp_negative."<br>";
 print "FP: ".$fp_negative."<br>";
@@ -215,7 +236,24 @@ print "TN: ".$tn_negative."<br>";
 print "Precision: ".$precision_negative."<br>";
 print "Recall: ".$recall_negative."<br>";
 print "F1: ".$f1_negative."<br>";
+*/
 
+print "<center><b>Neitrāliem komentāriem</b></center>";
+
+print "<table style='width:40%' class='table table-bordered table-hover'>\n";
+print "<tr><td>&nbsp;</td><td><b>Ir</b></td><td><b>nav</b></td></tr>\n";
+print "<tr><td><b>Izvēlēts</b></td><td>TP: ".$tp_neutral."</td><td>FP: ".$fp_neutral."</td></tr>\n";
+print "<tr><td><b>Nav izvēlēts</b></td><td>FN: ".$fn_neutral."</td><td>TN: ".$tn_neutral."</td></tr>\n";
+print "</table><br><br>";
+
+print "<table style='width:40%' class='table table-bordered table-hover'>";
+print "<tr><td><b>Precision: </b></td><td>".$precision_neutral."</td></tr>\n";
+print "<tr><td><b>Recall: </b></td><td>".$recall_neutral."</td></tr>\n";
+print "<tr><td><b>F1: </b></td><td>".$f1_neutral."</td></tr>\n";
+
+print "</table><br>";
+
+/*
 print "<hr>";
 print "For neutral class <br>";
 print "TP: ".$tp_neutral."<br>";
@@ -225,6 +263,7 @@ print "TN: ".$tn_neutral."<br>";
 print "Precision: ".$precision_neutral."<br>";
 print "Recall: ".$recall_neutral."<br>";
 print "F1: ".$f1_neutral."<br>";
+*/
 
 //------------------------------------------------------------------------------
 $k = 10;
@@ -241,59 +280,18 @@ for($i=0; $i<sizeof($objects); $i++)
 }
 */
 
+/*
 for($i=0; $i<$max_boundary; $i+=$augment)
 {
     for($j=$i-1; $j>=0; $j--)
     {
         
     }
-    //print $i." ".$test_arr[$i]."<hr>";
-}
-
-
-//------------------------------------------------------------------------------
-/*
-function check_class($document)
-{
-    global $labeled_arr;
-    //$labeled_arr['negative'][0] = mb_convert_encoding($labeled_arr['negative'][0], "UTF-8");
-    //$document = mb_convert_encoding($document, "UTF-8");
-
-    $labeled_arr['negative'][1] = trim($labeled_arr['negative'][1]);
-    $document = trim($document);
-
-    print "__".$labeled_arr['negative'][1]."__";
-    print "<br>";
-    print "__".$document."__";
-    print "<br>";
-
-
-    
-    print "<hr>";
-    print strcmp($labeled_arr['negative'][1], $document)."<br>";
-    print "<hr>";
-    if($labeled_arr['negative'][0] == $document) return "negative";
-    
-    for($i=0; $i<sizeof($labeled_arr['negative']); $i++)
-    {
-        $labeled_arr['negative'][$i] = trim($labeled_arr['negative'][$i]);
-        if($labeled_arr['negative'][$i] == $document) return "negative";
-    }
-
-    for($i=0; $i<sizeof($labeled_arr['neutral']); $i++)
-    {
-        if($labeled_arr['neutral'][$i] == $document) return "neutral";
-    }
 }
 */
 
+//------------------------------------------------------------------------------
 
-//for($i=0; $i<sizeof($test_arr); $i++) print $i." ".$test_arr[$i]."<hr>";
-//for($i=0; $i<sizeof($labeled_arr['neg']); $i++) print $i." ".$labeled_arr['neg'][$i]."<hr>";
-//for($i=0; $i<sizeof($labeled_arr['neutral']); $i++) print $i." ".$labeled_arr['neutral'][$i]."<hr>";
-
-//print $op->docs['negative']."<br>";
-//print $op->docs['neutral']."<br>";
 
 /*
 $r1 = 0;
