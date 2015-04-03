@@ -1,46 +1,64 @@
+var d = "";
 
-//var res = "";
-
-function t(c, num)
+function t(c)
 {
         var xmlhttp = new XMLHttpRequest();
         xmlhttp.onreadystatechange = function()
 	{
             if (xmlhttp.readyState == 4 && xmlhttp.status == 200)
 	    {
-		/////alert(xmlhttp.responseText);
-		///document.getElementsByClassName('message')[num].style.color = "red";
+		f = xmlhttp.responseText.trim();
+		f = f.split(' ');
 
-		if(xmlhttp.responseText == "0") document.getElementsByClassName('message')[num].style.color = "red";
+		//for(i=0; i<f.length; i++)
+		//{
+		//	v = parseInt(f[i]);
+		//	document.getElementsByClassName('message')[v].style.color = "red";
+		//	document.getElementsByClassName('message')[i].innerHTML += "<br><input type=button value='dgsg'>";
+		//}
+
+		var message_count = document.getElementsByClassName('message').length;
+		var j = 0;
+		for(i=0; i<message_count; i++)
+		{
+                    if(j<f.length)
+                    {
+			v = parseInt(f[j]);
+			if(i == v)
+			{
+                            document.getElementsByClassName('message')[i].style.color = "red";
+                            //document.getElementsByClassName('message')[i].innerHTML += "<br><input type=button value='dgsg'>";
+                            document.getElementsByClassName('message')[i].innerHTML += "<br><input type=\"submit\" class='btn  btn-primary' value='Tomēr ir neitrāls'><br>";
+                            j++;
+                            continue;
+			}
+                    }
+                    
+                    document.getElementsByClassName('message')[i].style.color = "green";
+                    //document.getElementsByClassName('message')[i].innerHTML += "<br><input type=button value='dgsg'>";
+                    document.getElementsByClassName('message')[i].innerHTML += "<br><input type=\"submit\" class='btn  btn-primary' value='Tomēr ir negatīvs'><br>";
+		}
 	    }
         }
-        xmlhttp.open("POST", "http://localhost/text/chrome_ext/a.php", true);
+        xmlhttp.open("POST", "http://localhost/text/a.php", true);
 	xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-
-
         xmlhttp.send("b="+c);
 }
 
 
 
-alert(document.getElementsByClassName('message').length);
 var s = document.getElementsByClassName('message').length;
-
 
 
 for(i=0; i<s; i++)
 {
-	//a = document.getElementsByClassName('message')[i].innerText;
-
-	t(document.getElementsByClassName('message')[i].innerText, i);
-	//if(res != "") document.getElementsByClassName('message')[i].style.color = "red";
-	//alert(res);
-	//document.getElementsByClassName('message')[i].innerText = "<a href=cnn.com>afsdfsdffdg</a>";
-	//document.getElementsByClassName('message')[i].style.color = "red";
-
-	//alert(a);
+	d += document.getElementsByClassName('message')[i].innerText;
+	d += "DELIMITER";
 }
 
+if(s>0) t(d);
+
+//alert("FINISHED");
 
 
 
