@@ -21,25 +21,6 @@ for($i=0; $i<sizeof($exploded_doc); $i++)
     
 }
 
-//-----------------------------------------------
-
-$content = file_get_contents('added_negative.txt');
-$exploded_doc = explode('DELIMITER', $content);
-for($i=0; $i<sizeof($exploded_doc)-1; $i++)
-{
-    $op->add($exploded_doc[$i], "negative");
-    
-}
-
-$content = file_get_contents('added_neutral.txt');
-$exploded_doc = explode('DELIMITER', $content);
-for($i=0; $i<sizeof($exploded_doc)-1; $i++)
-{
-    $op->add($exploded_doc[$i], "neutral");
-    
-}
-
-//-----------------------------------------------
 
 $exp = explode('DELIMITER', $_POST['b']);
 $res = "";
