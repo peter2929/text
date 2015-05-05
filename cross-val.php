@@ -1,5 +1,5 @@
 ﻿<?php
-
+session_start();
 include 'NaiveBayesClass.php';
 set_time_limit(300);
 
@@ -23,8 +23,11 @@ class test_docs
 </head>
 <body>
 <center>
-<div class="container">    
+<div class="container">
+    
 <?php
+
+include 'top_menu.php';
 
 $op = new sentiments();
 $objects = array();
