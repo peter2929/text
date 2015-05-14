@@ -1,7 +1,7 @@
 <?php
 
 error_reporting(E_ALL | E_STRICT);
-include './phpmorphy/src/common.php';
+include 'C:\xampp\htdocs\text\phpmorphy/src/common.php';
 
 $opts = array(
 	'storage' => PHPMORPHY_STORAGE_FILE,
@@ -11,7 +11,7 @@ $opts = array(
 );
 
 // Path to directory where dictionaries located
-$dir = dirname(__FILE__) . '\phpmorphy\dicts';
+$dir = 'C:\xampp\htdocs\text\phpmorphy\dicts';
 
 // Create descriptor for dictionary located in $dir directory with russian language
 $dict_bundle = new phpMorphy_FilesBundle($dir, 'rus');
@@ -23,12 +23,10 @@ try {
 	die('Error occured while creating phpMorphy instance: ' . $e->getMessage());
 }
 
-///print $morphy->getBaseForm("НАТО")[0];
-
 //---------------------------------------END OF PHPMORPHY--------------------------------------------------------
 
 $stopwords = array();
-$fh = fopen('stop-words.txt', 'r');
+$fh = fopen('C:\xampp\htdocs\text\stop-words.txt', 'r');
 while($line = fgets($fh))
 {
     $trimmed_line = trim($line);
@@ -41,83 +39,43 @@ while($line = fgets($fh))
 
 class sentiments
 {
-    public $total_index = array();
-    public $bad_index = array();
-    public $word_count = 0;
-    public $bad_word_count = 0;
+    public $index = array();
+    //public $index['negative'] = array();//
+    //public $index['neutral'] = array(); //
+    public $word_count = array('negative' => 0, 'neutral' => 0);
+    public $docs = array('negative' => 0, 'neutral' => 0);
+    public $total_word_count = 0;
     public $unique_word_count = 0;
-    public $doc_negative = 0;
-    public $doc_neutral = 0;
 
-    public function add($file)
+
+    public function add($document, $class)
     {
             global $morphy, $stopwords;
-            $file_content = file_get_contents($file);
-            $texts = explode('DELIMITER', $file_content);
-            $this->doc_negative = sizeof($texts);
+            $this->docs[$class]++;
 
-            for($i=0; $i<sizeof($texts); $i++)
+            $words = $this->tokenize($document);
+            for($m=0; $m<sizeof($words); $m++)
             {
-               /// print "<hr>"; ////
-                    $words = $this->tokenize($texts[$i]);
-                    for($m=0; $m<sizeof($words); $m++)
-                    {
-                            $words[$m] = trim($words[$m]);
-                            $words[$m] = mb_strtoupper($words[$m], 'UTF-8');
-                            $base_form = $morphy->getBaseForm($words[$m]);
-
-                            if($base_form[0])
-                            {
-                              ///  print $base_form[0]."---"; ////
-
-                                    $word = $base_form[0];
-                                    if(!isset($this->total_index[$word]))
-                                    {
-                                        $this->total_index[$word] = 0;
-                                        $this->bad_index[$word] = 0;
-                                        $this->unique_word_count++;
-                                    }
-
-                                    $this->total_index[$word]++;
-                                    $this->bad_index[$word]++;
-                                    $this->word_count++;
-                            }
-                    }
-            }
-
-            $this->bad_word_count = $this->word_count;
-
-            //---------------------------------------------------------------
-            $file_content = file_get_contents("neutral_data.txt");
-            $texts = explode('DELIMITER', $file_content);
-            $this->doc_neutral = sizeof($texts);
-            ////////////print sizeof($texts)."<hr>";
-            for($i=0; $i<sizeof($texts); $i++)
-            {
-                $words = $this->tokenize($texts[$i]);
-
-                for($m=0; $m<sizeof($words); $m++)
-                {
                     $words[$m] = trim($words[$m]);
                     $words[$m] = mb_strtoupper($words[$m], 'UTF-8');
                     $base_form = $morphy->getBaseForm($words[$m]);
 
-                    if($base_form[0])
+                    if($base_form[0] && !isset($stopwords[$base_form[0]]))  //  && !isset($stopwords[$base_form[0]])
                     {
-                            $word = $base_form[0];
-                            if(!isset($this->total_index[$word]))
-                            {
-                                $this->total_index[$word] = 0;
-                                $this->bad_index[$word] = 0;
-                                $this->unique_word_count++;
-                            }
+                  //print $base_form[0]."---"; ////
 
-                            $this->total_index[$word]++;
-                            $this->word_count++;
+                        $word = $base_form[0];
+                        if(!isset($this->index[$class][$word]))
+                        {
+                            $this->index[$class][$word] = 0;
+                            $this->unique_word_count++;
+                        }
+
+                        $this->index[$class][$word]++;
+                        $this->word_count[$class]++;
+                        $this->total_word_count++;
                     }
-                }
             }
-
     }
 
 
@@ -127,49 +85,42 @@ class sentiments
         $words = $this->tokenize($document);
         $prob_negative = 0;
         $prob_neutral = 0;
-        $neutral_word_count = $this->word_count - $this->bad_word_count;
 
-        print "<table style='width:20%'  class='table table-bordered table-hover'>";
-        print "<th>Vards</th><th>Neg.</th><th>Neitrals</th><th>Neg.</th><th>Neitrals</th>";
+        print "<table style='width:20%' class='table table-bordered table-hover'>";
+        print "<th>Vārds</th><th>Neg.</th><th>Neitrals</th><th>Neg.</th><th>Neitrāls</th>";
         for($m=0; $m<sizeof($words); $m++)
         {
                 $words[$m] = trim($words[$m]);
                 $words[$m] = mb_strtoupper($words[$m], 'UTF-8');
                 $base_form = $morphy->getBaseForm($words[$m]);
 
-                if($base_form[0] && !isset($stopwords[$base_form[0]]))
+                if($base_form[0] && !isset($stopwords[$base_form[0]]))  // && !isset($stopwords[$base_form[0]]
                 {
                         $word = $base_form[0];
-                        if(!isset($this->total_index[$word]))
+                        if(!isset($this->index['negative'][$word]))
                         {
-                            $count_total = 0;
-                            $count_bad = 0;
+                            $this->index['negative'][$word] = 0;
                         }
-                        else
+                        if(!isset($this->index['neutral'][$word]))
                         {
-                            $count_total = $this->total_index[$word];
-                            if(!isset($this->bad_index[$word]))
-                                $count_bad = 0;
-                            else
-                                $count_bad = $this->bad_index[$word];
+                            $this->index['neutral'][$word] = 0;
                         }
 
-
-                        $numerator_negative = ($count_bad+1) / ($this->bad_word_count + $this->unique_word_count);
+                        $numerator_negative = ($this->index['negative'][$word]+1) / ($this->word_count['negative'] + $this->unique_word_count);
                         $prob_negative += log($numerator_negative);
 
-                        $count_neutral = $count_total - $count_bad;
-                        $numerator_neutral = ($count_neutral+1) / ($neutral_word_count + $this->unique_word_count);
+                        ////$count_neutral = $count_total - $count_bad;
+                        $numerator_neutral = ($this->index['neutral'][$word]+1) / ($this->word_count['neutral'] + $this->unique_word_count);
                         $prob_neutral += log($numerator_neutral);
 
-                        print "<tr><td>".$word."</td><td>".log($numerator_negative)."</td><td>".log($numerator_neutral)."</td><td>".$count_bad."</td><td>".$count_neutral."</td></tr>";
-                }
+                        print "<tr><td>".$word."</td><td>".log($numerator_negative)."</td><td>".log($numerator_neutral)."</td><td>".$this->index['negative'][$word]."</td><td>".$this->index['neutral'][$word]."</td></tr>\n";
+                }       /// count_bad    count_neutral
         }
 
         //-------- THE WORDS HAVE BEEN ANALYZED--------------------------------------------
         
-        $prob_negative += log(0.2);
-        $prob_neutral += log(1);
+        $prob_negative += log(0.3);
+        $prob_neutral += log(0.7);
 
         print "</table><br>";
 
@@ -177,16 +128,16 @@ class sentiments
         {
             print "<span style='color:#f00;'><b>Negatīvs!</b></span><br>";
             print "<a href='#' class='btn  btn-primary' role='button'>Tomer ir neitrals</a><br>";
+            print "Neg prob: ".$prob_negative." NON neg prob ".$prob_neutral."  ";
+            return "negative";
         }
         else
         {
             print "<span style='color:#0f0;'><b>Nav negatīvs!</span></b><br>";
             print "<a href='#' class='btn  btn-primary' role='button'>Tomer ir negativs</a><br>";
+            print "Neg prob: ".$prob_negative." NON neg prob ".$prob_neutral."  ";
+            return "neutral";
         }
-
-        print "Neg prob: ".$prob_negative." NON neg prob ".$prob_neutral."  ";
-        //return "";
-
     }
     
     public function tokenize($text)
@@ -195,6 +146,66 @@ class sentiments
         $text = str_replace($unwantedChars, ' ', $text);
         $words = explode(' ', $text);
         return $words;
+    }
+    
+    public function reset()
+    {
+        unset($this->index['negative']);
+        unset($this->index['neutral']);
+        $this->word_count['negative'] = 0;
+        $this->word_count['neutral'] = 0;
+        $this->docs['negative'] = 0;
+        $this->docs['neutral'] = 0;
+        $total_word_count = 0;
+        $this->unique_word_count = 0;   
+    }
+    
+    public function save_to()
+    {
+        $a = fopen('ratios.txt', 'w');
+        fwrite($a, $this->unique_word_count."\r\n");
+        fwrite($a, $this->word_count['negative']."\r\n");
+        foreach($this->index['negative'] as $key => $value)
+        {
+            fwrite($a, $key." ".$value."\r\n");
+        }
+
+        fwrite($a, "---");
+        fwrite($a, $this->word_count['neutral']."\r\n");
+        foreach($this->index['neutral'] as $key => $value)
+        {
+            fwrite($a, $key." ".$value."\r\n");
+        }
+    }
+    
+    public function learn_from()
+    {
+        global $morphy;
+        $b = fopen('ratios.txt', 'r');
+        $this->unique_word_count = intval(fgets($b));
+        $this->word_count['negative'] = intval(fgets($b));
+        while($line = fgets($b))
+        {
+            $trimmed_line = trim($line);
+            if($trimmed_line == "---") break;
+            $h = explode(' ', $trimmed_line);
+            
+            //$h[0] = trim($h[0]);
+            print $h[0]." ".$h[1]."<br>";
+            $h[0] = mb_strtoupper($h[0], 'UTF-8');
+            $base_form = $morphy->getBaseForm($h[0]);  /////
+            $this->index['negative'][$base_form[0]] = intval($h[1]);
+        }
+        
+        $this->word_count['neutral'] = intval(fgets($b));
+        while($line = fgets($b))
+        {
+            $trimmed_line = trim($line);
+            $h = explode(' ', $trimmed_line);
+            $h[0] = mb_strtoupper($h[0], 'UTF-8');
+            $base_form = $morphy->getBaseForm($h[0]);  /////
+            $this->index['neutral'][$base_form[0]] = intval($h[1]);
+        }
     }
 }
 
