@@ -7,7 +7,7 @@ set_time_limit(300);
 $op = new sentiments();
 
 
-$comment = strip_tags($_POST['com']);
+$comment = strip_tags($_POST['comment']);
 $comment .= "DELIMITER";
 
 

@@ -41,7 +41,7 @@ for($i=0; $i<sizeof($exploded_doc)-1; $i++)
 
 //-----------------------------------------------
 
-$exp = explode('DELIMITER', $_POST['b']);
+$exp = explode('DELIMITER', $_POST['comments']);
 $res = "";
 for($i=0; $i<sizeof($exp)-1; $i++)
 {

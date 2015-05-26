@@ -160,6 +160,7 @@ class sentiments
         $this->unique_word_count = 0;   
     }
     
+    /*
     public function save_to()
     {
         $a = fopen('ratios.txt', 'w');
@@ -207,6 +208,8 @@ class sentiments
             $this->index['neutral'][$base_form[0]] = intval($h[1]);
         }
     }
+     * 
+     */
 }
 
 
